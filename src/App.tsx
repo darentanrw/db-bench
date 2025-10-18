@@ -28,7 +28,6 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const generateUploadUrl = useMutation(api.myFunctions.generateUploadUrl);
   const saveVideoMetadata = useMutation(api.myFunctions.saveVideoMetadata);
 
   const handleFileSelected = async (
@@ -39,21 +38,20 @@ export default function App() {
     setUploadError(null);
 
     try {
-      // Generate upload URL
-      const uploadUrl = await generateUploadUrl();
+      // Upload file to server
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Upload file to Convex storage
-      const result = await fetch(uploadUrl, {
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        body: formData,
       });
 
-      if (!result.ok) {
-        throw new Error(`Failed to upload file: ${result.statusText}`);
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
       }
 
-      const { storageId } = await result.json();
+      const { filePath } = await uploadResponse.json();
 
       // Prepare metadata
       const fileName = `${Date.now()}-${file.name}`;
@@ -64,7 +62,7 @@ export default function App() {
       // Save video metadata to database
       const videoId = await saveVideoMetadata({
         fileName,
-        fileId: storageId,
+        fileId: filePath,
         fileSize: file.size,
         fileType: file.type,
         title,
@@ -78,9 +76,9 @@ export default function App() {
       const fileData: FileData = {
         file,
         fileName,
-        fileId: storageId,
+        fileId: filePath,
         videoId,
-        filePath: `/uploads/${fileName}`,
+        filePath,
         fileSize: file.size,
         fileType: file.type,
         videoResolution: metadata.videoResolution,

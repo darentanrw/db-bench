@@ -14,7 +14,7 @@ export default defineSchema({
     id: v.number(),
     title: v.string(),
     fileName: v.string(),
-    fileId: v.id("_storage"), // Reference to Convex file storage
+    fileId: v.string(), // Reference to Convex file storage
     fileSize: v.number(),
     fileType: v.string(),
     src_x_resolution: v.number(),

@@ -77,41 +77,6 @@ export const myAction = action({
   },
 });
 
-// File upload functions using the video table
-export const saveVideoFile = mutation({
-  args: {
-    fileName: v.string(),
-    fileId: v.id("_storage"),
-    fileSize: v.number(),
-    fileType: v.string(),
-    title: v.string(),
-    src_x_resolution: v.number(),
-    src_y_resolution: v.number(),
-    src_fps: v.number(),
-    duration: v.number(),
-  },
-  returns: v.id("video"),
-  handler: async (ctx, args) => {
-    const id = await ctx.db.insert("video", {
-      id: Date.now(), // Use timestamp as unique ID
-      title: args.title,
-      fileName: args.fileName,
-      fileId: args.fileId,
-      fileSize: args.fileSize,
-      fileType: args.fileType,
-      src_x_resolution: args.src_x_resolution,
-      src_y_resolution: args.src_y_resolution,
-      output_x_resolution: args.src_x_resolution, // Default to same as source
-      output_y_resolution: args.src_y_resolution, // Default to same as source
-      src_fps: args.src_fps,
-      output_fps: args.src_fps, // Default to same as source
-      duration: args.duration,
-      uploadTime: Date.now(),
-    });
-    return id;
-  },
-});
-
 export const getVideoFiles = query({
   args: {},
   returns: v.array(
@@ -121,7 +86,7 @@ export const getVideoFiles = query({
       id: v.number(),
       title: v.string(),
       fileName: v.string(),
-      fileId: v.id("_storage"),
+      fileId: v.string(),
       fileSize: v.number(),
       fileType: v.string(),
       src_x_resolution: v.number(),
@@ -145,19 +110,10 @@ export const getVideoFiles = query({
 });
 
 export const getVideoFileUrl = query({
-  args: { fileId: v.id("_storage") },
+  args: { fileId: v.string() },
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, args) => {
-    return await ctx.storage.getUrl(args.fileId);
-  },
-});
-
-// Generate upload URL for file uploads
-export const generateUploadUrl = mutation({
-  args: {},
-  returns: v.string(),
-  handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
+    return args.fileId;
   },
 });
 
@@ -165,7 +121,7 @@ export const generateUploadUrl = mutation({
 export const saveVideoMetadata = mutation({
   args: {
     fileName: v.string(),
-    fileId: v.id("_storage"),
+    fileId: v.string(),
     fileSize: v.number(),
     fileType: v.string(),
     title: v.string(),
