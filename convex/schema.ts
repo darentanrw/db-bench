@@ -9,4 +9,22 @@ export default defineSchema({
   numbers: defineTable({
     value: v.number(),
   }),
+
+  video: defineTable({
+    id: v.number(),
+    title: v.string(),
+    src_x_resolution: v.number(),
+    src_y_resolution: v.number(),
+    output_x_resolution: v.number(),
+    output_y_resolution: v.number(),
+    src_fps: v.number(),
+    output_fps: v.number(),
+    duration: v.number(),
+  }),
+
+  // maybe this should be in x, y rows of the table.
+  frames: defineTable({
+    pixelNo: v.number(),
+    pixelData: v.string(),
+  }),
 });
