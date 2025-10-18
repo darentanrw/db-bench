@@ -87,6 +87,7 @@ app.post("/api/process-video", (req, res) => {
       success: true,
       message: "Video processing started",
       videoBasename: videoBasename,
+
     });
   } catch (error) {
     console.error("Error starting video processing:", error);

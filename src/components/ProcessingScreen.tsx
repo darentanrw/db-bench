@@ -12,6 +12,7 @@ export default function ProcessingScreen({
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState("Initializing...");
 
+
   useEffect(() => {
     let pollInterval: NodeJS.Timeout | undefined;
     let timeoutId: NodeJS.Timeout | undefined;
@@ -125,8 +126,8 @@ export default function ProcessingScreen({
             }
             setTimeout(() => onProcessingComplete(), 1000);
           },
-          5 * 60 * 1000,
-        ); // 5 minutes
+          3 * 60 * 1000,
+        ); // 3 minutes
       } catch (error) {
         console.error("Error processing video:", error);
         setCurrentStep("Error occurred");

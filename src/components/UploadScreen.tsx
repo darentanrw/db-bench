@@ -123,7 +123,7 @@ export default function UploadScreen({
             DB Bench
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            stress test your DB with ASCII art
+            stress test your DB with ASCII videos
           </p>
         </div>
 

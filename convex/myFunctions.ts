@@ -81,3 +81,43 @@ export const saveVideoMetadata = mutation({
     return id;
   },
 });
+
+export const createEmptyFrameTable = mutation({
+  args: {
+    noOfFrames: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // delete existing rows of data first
+    await ctx.db
+      .query("frames")
+      .collect()
+      .then((rows) => {
+        for (const row of rows) {
+          void ctx.db.delete(row._id);
+        }
+      });
+
+    for (let i = 0; i < args.noOfFrames; i++) {
+      await ctx.db.insert("frames", {
+        frameNumber: -1,
+        lineNumber: i,
+        lineContent: " ",
+      });
+    }
+  },
+});
+
+export const getAllFrames = query({
+  args: {},
+  handler: async (ctx) => {
+    // Query the database to get all items that are not completed
+    const tasks = await ctx.db
+      .query("frames")
+      .withIndex("by_frame_number")
+      .order("asc")
+      .collect();
+    return tasks;
+  },
+});
+

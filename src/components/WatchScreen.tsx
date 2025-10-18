@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useMutation } from "convex/react";
 
 interface FileData {
   file: File;
@@ -28,10 +29,13 @@ export default function WatchScreen({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [frames, setFrames] = useState(0);
+  const [currentFrameCount, setCurrentFrameCount] = useState(0);
   const [dbWrites, setDbWrites] = useState(0);
   const [queries, setQueries] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const createEmptyFrameTableResponse = useMutation(
+    api.myFunctions.createEmptyFrameTable,
+  );
 
   // Get the file URL from Convex storage
   const fileUrl = useQuery(
@@ -56,9 +60,13 @@ export default function WatchScreen({
           // Calculate real frame count based on actual video time and FPS
           const fps = parseFloat(fileData.videoFPS) || 30;
           const realFrameCount = Math.floor(video.currentTime * fps);
-          setFrames(realFrameCount);
+          setCurrentFrameCount(realFrameCount);
         }
       };
+
+      // Create empty frame table
+      void createEmptyFrameTableResponse({ noOfFrames: fileData.frameNo });
+      console.log("Empty frame table created successfully");
 
       // Add additional event listeners for more responsive updates
       const handlePlay = () => setIsPlaying(true);
@@ -78,6 +86,7 @@ export default function WatchScreen({
         video.removeEventListener("ended", handleEnded);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileUrl, fileData.videoFPS]);
 
   useEffect(() => {
@@ -130,17 +139,9 @@ export default function WatchScreen({
   };
 
   const resetStats = () => {
-    setFrames(0);
+    setCurrentFrameCount(0);
     setDbWrites(0);
     setQueries(0);
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime;
-    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -260,10 +261,10 @@ export default function WatchScreen({
 
                 {/* Video Controls */}
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex justify-left">
                     <button
                       onClick={handlePlayPause}
-                      className="flex items-center justify-center w-10 h-10 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 rounded-full hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors duration-200"
+                      className="flex items-center justify-center px-12 py-3 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 rounded-lg hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors duration-200"
                     >
                       {isPlaying ? (
                         <svg
@@ -283,23 +284,6 @@ export default function WatchScreen({
                         </svg>
                       )}
                     </button>
-
-                    <div className="flex-1">
-                      <input
-                        type="range"
-                        min="0"
-                        max={duration}
-                        step="0.1"
-                        value={currentTime}
-                        onChange={handleSeek}
-                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
                   </div>
                 </div>
               </div>
@@ -322,14 +306,14 @@ export default function WatchScreen({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Frames Played:
+                    Current Frame Counter:
                   </span>
                   <span
                     className={`font-mono text-lg font-semibold text-blue-600 dark:text-blue-400 transition-all duration-100 ${
                       isPlaying ? "animate-pulse" : ""
                     }`}
                   >
-                    {frames.toLocaleString()}
+                    {currentFrameCount.toLocaleString()}
                   </span>
                 </div>
 

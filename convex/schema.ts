@@ -26,7 +26,10 @@ export default defineSchema({
 
   // maybe this should be in x, y rows of the table.
   frames: defineTable({
-    pixelNo: v.number(),
-    pixelData: v.string(),
-  }),
+    frameNumber: v.number(),
+    lineNumber: v.number(),
+    lineContent: v.string(),
+  })
+    .index("by_frame_number", ["frameNumber"])
+    .index("by_line_number", ["lineNumber"]),
 });
