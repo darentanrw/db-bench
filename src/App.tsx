@@ -1,9 +1,9 @@
 import { useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
 import UploadScreen from "./components/UploadScreen";
 import ProcessingScreen from "./components/ProcessingScreen";
 import WatchScreen from "./components/WatchScreen";
-import { useMutation } from "convex/react";
-import { api } from "../convex/_generated/api";
 import { parseVideoResolution, parseVideoFPS } from "./utils/fileUtils";
 
 type Screen = "upload" | "processing" | "watch";
@@ -27,6 +27,7 @@ export default function App() {
   const [uploadedFile, setUploadedFile] = useState<FileData | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
   const generateUploadUrl = useMutation(api.myFunctions.generateUploadUrl);
   const saveVideoMetadata = useMutation(api.myFunctions.saveVideoMetadata);
 
@@ -96,6 +97,7 @@ export default function App() {
       setIsUploading(false);
     }
   };
+
 
   const handleStartProcessing = () => {
     setCurrentScreen("processing");
