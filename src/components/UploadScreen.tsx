@@ -1,18 +1,26 @@
 import { useState, useRef } from "react";
 
 interface UploadScreenProps {
-  onFileSelected: (file: File) => void;
+  onFileSelected: (
+    file: File,
+    metadata: { videoResolution: string; videoFPS: string; duration: number },
+  ) => Promise<void>;
   onStartProcessing: () => void;
+  isUploading?: boolean;
+  uploadError?: string | null;
 }
 
 export default function UploadScreen({
   onFileSelected,
   onStartProcessing,
+  isUploading = false,
+  uploadError = null,
 }: UploadScreenProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videoResolution, setVideoResolution] = useState<string>("");
   const [videoFPS, setVideoFPS] = useState<string>("");
+  const [videoDuration, setVideoDuration] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -34,7 +42,13 @@ export default function UploadScreen({
 
     if (videoFile) {
       setSelectedFile(videoFile);
-      onFileSelected(videoFile);
+      loadVideoMetadata(videoFile, async () => {
+        await onFileSelected(videoFile, {
+          videoResolution,
+          videoFPS,
+          duration: videoDuration,
+        });
+      });
     }
   };
 
@@ -42,8 +56,13 @@ export default function UploadScreen({
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      onFileSelected(file);
-      loadVideoMetadata(file);
+      loadVideoMetadata(file, async () => {
+        await onFileSelected(file, {
+          videoResolution,
+          videoFPS,
+          duration: videoDuration,
+        });
+      });
     }
   };
 
@@ -61,12 +80,16 @@ export default function UploadScreen({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const loadVideoMetadata = (file: File) => {
+  const loadVideoMetadata = (
+    file: File,
+    callback?: () => void | Promise<void>,
+  ) => {
     const video = document.createElement("video");
     video.preload = "metadata";
 
     video.onloadedmetadata = () => {
       setVideoResolution(`${video.videoWidth}x${video.videoHeight}`);
+      setVideoDuration(video.duration);
 
       // Try to get FPS from video properties
       const fps =
@@ -75,12 +98,15 @@ export default function UploadScreen({
       setVideoFPS(`${fps} fps`);
 
       URL.revokeObjectURL(video.src);
+      if (callback) void callback();
     };
 
     video.onerror = () => {
       setVideoResolution("Unknown");
       setVideoFPS("Unknown");
+      setVideoDuration(0);
       URL.revokeObjectURL(video.src);
+      if (callback) void callback();
     };
 
     video.src = URL.createObjectURL(file);
@@ -194,16 +220,49 @@ export default function UploadScreen({
                   {videoFPS}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-400">
+                  Duration:
+                </span>
+                <span className="text-slate-800 dark:text-slate-200 font-medium">
+                  {videoDuration > 0
+                    ? `${Math.floor(videoDuration / 60)}:${Math.floor(
+                        videoDuration % 60,
+                      )
+                        .toString()
+                        .padStart(2, "0")}`
+                    : "Unknown"}
+                </span>
+              </div>
             </div>
+
+            {uploadError && (
+              <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+                <p className="text-red-700 dark:text-red-300 text-sm">
+                  Upload failed: {uploadError}
+                </p>
+              </div>
+            )}
 
             <button
               onClick={handleProcessVideo}
-              className="w-full mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200"
+              disabled={isUploading}
+              className={`w-full mt-6 px-6 py-3 rounded-lg font-medium transition-colors duration-200 ${
+                isUploading
+                  ? "bg-gray-400 cursor-not-allowed text-gray-200"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
             >
-              Process Video
+              {isUploading ? "Uploading..." : "Process Video"}
             </button>
           </div>
         )}
+        <div>
+          <p className="text-slate-500 text-center dark:text-slate-400 my-4 px-20">
+            *this is most definitely not the most comprehensive stress test, but
+            it still shows you how fast convex is.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -13,6 +13,10 @@ export default defineSchema({
   video: defineTable({
     id: v.number(),
     title: v.string(),
+    fileName: v.string(),
+    fileId: v.id("_storage"), // Reference to Convex file storage
+    fileSize: v.number(),
+    fileType: v.string(),
     src_x_resolution: v.number(),
     src_y_resolution: v.number(),
     output_x_resolution: v.number(),
@@ -20,7 +24,8 @@ export default defineSchema({
     src_fps: v.number(),
     output_fps: v.number(),
     duration: v.number(),
-  }),
+    uploadTime: v.number(),
+  }).index("by_upload_time", ["uploadTime"]),
 
   // maybe this should be in x, y rows of the table.
   frames: defineTable({
