@@ -1,9 +1,9 @@
-process.on('uncaughtException', (err, origin) => {
-  console.error('Caught exception:', err, 'Exception origin:', origin);
+process.on("uncaughtException", (err, origin) => {
+  console.error("Caught exception:", err, "Exception origin:", origin);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
 import express from "express";
@@ -26,10 +26,10 @@ const port = 3001;
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: function (_req, _file, cb) {
     cb(null, "uploads/");
   },
-  filename: function (req, file, cb) {
+  filename: function (_req, file, cb) {
     cb(null, Date.now() + path.extname(file.originalname)); // Append extension
   },
 });
@@ -96,9 +96,9 @@ app.post("/saveVideoMetadata", async (req, res) => {
 });
 */
 
-app.use((err: any, req: any, res: any, next: any) => {
+app.use((err: any, _req: any, res: any, _next: any) => {
   console.error(err.stack);
-  res.status(500).send('Something broke!');
+  res.status(500).send("Something broke!");
 });
 
 app.listen(port, () => {

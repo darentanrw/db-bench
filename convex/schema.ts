@@ -6,10 +6,6 @@ import { v } from "convex/values";
 // app will continue to work.
 // The schema provides more precise TypeScript types.
 export default defineSchema({
-  numbers: defineTable({
-    value: v.number(),
-  }),
-
   video: defineTable({
     id: v.number(),
     title: v.string(),
@@ -23,7 +19,8 @@ export default defineSchema({
     output_y_resolution: v.number(),
     src_fps: v.number(),
     output_fps: v.number(),
-    duration: v.number(),
+    frameNo: v.optional(v.number()), // Made optional to handle existing data
+    duration: v.optional(v.number()), // Keep for backward compatibility
     uploadTime: v.number(),
   }).index("by_upload_time", ["uploadTime"]),
 

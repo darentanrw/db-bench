@@ -4,7 +4,11 @@ import { api } from "../convex/_generated/api";
 import UploadScreen from "./components/UploadScreen";
 import ProcessingScreen from "./components/ProcessingScreen";
 import WatchScreen from "./components/WatchScreen";
-import { parseVideoResolution, parseVideoFPS } from "./utils/fileUtils";
+import {
+  parseVideoResolution,
+  parseVideoFPS,
+  calculateFrameNumber,
+} from "./utils/fileUtils";
 
 type Screen = "upload" | "processing" | "watch";
 
@@ -19,7 +23,7 @@ interface FileData {
   videoResolution: string;
   videoFPS: string;
   title: string;
-  duration: number;
+  frameNo: number;
 }
 
 export default function App() {
@@ -59,6 +63,9 @@ export default function App() {
       const resolution = parseVideoResolution(metadata.videoResolution);
       const fps = parseVideoFPS(metadata.videoFPS);
 
+      // Calculate frame number from duration and FPS
+      const frameNo = calculateFrameNumber(metadata.duration, fps);
+
       // Save video metadata to database
       const videoId = await saveVideoMetadata({
         fileName,
@@ -69,7 +76,7 @@ export default function App() {
         src_x_resolution: resolution.width,
         src_y_resolution: resolution.height,
         src_fps: fps,
-        duration: metadata.duration,
+        frameNo: frameNo,
       });
 
       // Create file data for the component
@@ -84,7 +91,7 @@ export default function App() {
         videoResolution: metadata.videoResolution,
         videoFPS: metadata.videoFPS,
         title,
-        duration: metadata.duration,
+        frameNo: frameNo,
       };
 
       setUploadedFile(fileData);
@@ -95,7 +102,6 @@ export default function App() {
       setIsUploading(false);
     }
   };
-
 
   const handleStartProcessing = () => {
     setCurrentScreen("processing");

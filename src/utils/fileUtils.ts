@@ -1,17 +1,15 @@
 // Utility functions for file handling
 
 export const saveFileToUploads = async (
-  file: File,
-  fileName: string,
-  metadata: {
+  _file: File,
+  _fileName: string,
+  _metadata: {
     title: string;
     videoResolution: string;
     videoFPS: string;
     duration: number;
   },
 ): Promise<{ fileId: string; videoId: string }> => {
-  // This function will be called from the component with Convex client
-  // For now, return the file and metadata to be handled by the component
   return {
     fileId: "", // Will be set by Convex
     videoId: "", // Will be set by Convex
@@ -35,11 +33,42 @@ export const formatFileSize = (bytes: number): string => {
 export const parseVideoResolution = (
   resolution: string,
 ): { width: number; height: number } => {
-  const [width, height] = resolution.split("x").map(Number);
-  return { width: width || 0, height: height || 0 };
+  console.log("Parsing resolution:", resolution);
+
+  // Handle edge cases
+  if (!resolution || resolution === "Unknown" || resolution === "") {
+    console.log("Invalid resolution string, returning 0x0");
+    return { width: 0, height: 0 };
+  }
+
+  const parts = resolution.split("x");
+  if (parts.length !== 2) {
+    console.log(
+      "Invalid resolution format, expected 'WIDTHxHEIGHT', got:",
+      resolution,
+    );
+    return { width: 0, height: 0 };
+  }
+
+  const width = parseInt(parts[0], 10);
+  const height = parseInt(parts[1], 10);
+
+  console.log("Parsed width:", width, "height:", height);
+
+  // Validate that we got valid numbers
+  if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+    console.log("Invalid width or height values");
+    return { width: 0, height: 0 };
+  }
+
+  return { width, height };
 };
 
 export const parseVideoFPS = (fps: string): number => {
   const fpsMatch = fps.match(/(\d+)/);
   return fpsMatch ? parseInt(fpsMatch[1]) : 30;
+};
+
+export const calculateFrameNumber = (duration: number, fps: number): number => {
+  return Math.floor(duration * fps);
 };

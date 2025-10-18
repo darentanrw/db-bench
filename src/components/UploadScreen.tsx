@@ -42,13 +42,7 @@ export default function UploadScreen({
 
     if (videoFile) {
       setSelectedFile(videoFile);
-      loadVideoMetadata(videoFile, async () => {
-        await onFileSelected(videoFile, {
-          videoResolution,
-          videoFPS,
-          duration: videoDuration,
-        });
-      });
+      loadVideoMetadata(videoFile);
     }
   };
 
@@ -56,13 +50,7 @@ export default function UploadScreen({
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      loadVideoMetadata(file, async () => {
-        await onFileSelected(file, {
-          videoResolution,
-          videoFPS,
-          duration: videoDuration,
-        });
-      });
+      loadVideoMetadata(file);
     }
   };
 
@@ -80,33 +68,48 @@ export default function UploadScreen({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const loadVideoMetadata = (
-    file: File,
-    callback?: () => void | Promise<void>,
-  ) => {
+  const loadVideoMetadata = (file: File) => {
     const video = document.createElement("video");
     video.preload = "metadata";
 
-    video.onloadedmetadata = () => {
-      setVideoResolution(`${video.videoWidth}x${video.videoHeight}`);
-      setVideoDuration(video.duration);
+    video.onloadedmetadata = async () => {
+      const resolution = `${video.videoWidth}x${video.videoHeight}`;
+      const duration = video.duration;
 
       // Try to get FPS from video properties
       const fps =
         video.getVideoPlaybackQuality?.()?.totalVideoFrames ||
         (video.duration > 0 ? Math.round(30) : 30); // Default to 30fps if we can't determine
-      setVideoFPS(`${fps} fps`);
+      const fpsString = `${fps} fps`;
+
+      // Update state for UI display
+      setVideoResolution(resolution);
+      setVideoDuration(duration);
+      setVideoFPS(fpsString);
+
+      // Call the callback with the actual metadata values
+      await onFileSelected(file, {
+        videoResolution: resolution,
+        videoFPS: fpsString,
+        duration: duration,
+      });
 
       URL.revokeObjectURL(video.src);
-      if (callback) void callback();
     };
 
-    video.onerror = () => {
+    video.onerror = async () => {
       setVideoResolution("Unknown");
       setVideoFPS("Unknown");
       setVideoDuration(0);
+
+      // Call the callback with error values
+      await onFileSelected(file, {
+        videoResolution: "Unknown",
+        videoFPS: "Unknown",
+        duration: 0,
+      });
+
       URL.revokeObjectURL(video.src);
-      if (callback) void callback();
     };
 
     video.src = URL.createObjectURL(file);

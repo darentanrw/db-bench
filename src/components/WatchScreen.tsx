@@ -13,7 +13,7 @@ interface FileData {
   videoResolution: string;
   videoFPS: string;
   title: string;
-  duration: number;
+  frameNo: number;
 }
 
 interface WatchScreenProps {
