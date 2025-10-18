@@ -154,7 +154,7 @@ export default function WatchScreen({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto px-20 px-10">
         {/* Header */}
         <div className="mb-6">
           <button
@@ -190,10 +190,10 @@ export default function WatchScreen({
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
             </div>
-            <div className="text-left text-slate-500 dark:text-slate-400 mb-4">
+            {/* <div className="text-left text-slate-500 dark:text-slate-400 mb-4">
               Every ASCII frame is <a>written</a>, then <a>queried</a> from the
               database.
-            </div>
+            </div> */}
 
             <div className="bg-slate-900 text-green-400 font-mono text-xs p-4 rounded-lg h-[calc(100%-4rem)] overflow-auto"></div>
           </div>
