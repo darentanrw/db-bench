@@ -1,46 +1,104 @@
 import { useState, useEffect } from "react";
+import path from "path";
 
 interface ProcessingScreenProps {
   onProcessingComplete: () => void;
+  videoFilePath: string;
 }
 
 export default function ProcessingScreen({
   onProcessingComplete,
+  videoFilePath,
 }: ProcessingScreenProps) {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState("Initializing...");
 
   useEffect(() => {
-    const steps = [
-      "Initializing...",
-      "Extracting frames...",
-      "Converting to ASCII...",
-      "Optimizing output...",
-      "Finalizing...",
-    ];
+    let pollInterval: NodeJS.Timeout | undefined;
 
-    let currentStepIndex = 0;
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const newProgress = prev + Math.random() * 15 + 5;
-        if (newProgress >= 100) {
-          setCurrentStep("Complete!");
-          setTimeout(() => onProcessingComplete(), 1000);
-          clearInterval(interval);
-          return 100;
+    const processVideo = async () => {
+      try {
+        setCurrentStep("Initializing...");
+        setProgress(0);
+
+        // Call the processing endpoint
+        const response = await fetch("/api/process-video", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            filePath: videoFilePath,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Processing failed: ${response.statusText}`);
         }
 
-        if (newProgress > (currentStepIndex + 1) * 20) {
-          currentStepIndex = Math.min(currentStepIndex + 1, steps.length - 1);
-          setCurrentStep(steps[currentStepIndex]);
-        }
+        const result = await response.json();
+        console.log("Processing result:", result);
 
-        return newProgress;
-      });
-    }, 200);
+        // Start polling for real progress
+        const videoBasename = path.basename(
+          videoFilePath,
+          path.extname(videoFilePath),
+        );
 
-    return () => clearInterval(interval);
-  }, [onProcessingComplete]);
+        const pollProgress = async () => {
+          try {
+            const progressResponse = await fetch(
+              `/api/processing-progress/${videoBasename}`,
+            );
+            const progressData = await progressResponse.json();
+            console.log("Progress data:", progressData);
+
+            setProgress(progressData.progress);
+
+            if (progressData.originalCount === 0) {
+              setCurrentStep("Extracting frames...");
+            } else if (
+              progressData.progress < 100 &&
+              !progressData.isComplete
+            ) {
+              setCurrentStep(
+                `Converting to ASCII... (${progressData.asciiCount}/${progressData.originalCount})`,
+              );
+            } else if (
+              progressData.isComplete ||
+              progressData.progress >= 100
+            ) {
+              setCurrentStep("Complete!");
+              if (pollInterval) {
+                clearInterval(pollInterval);
+              }
+              setTimeout(() => onProcessingComplete(), 1000);
+            }
+          } catch (pollError) {
+            console.error("Error polling progress:", pollError);
+          }
+        };
+
+        // Start polling immediately, then every 500ms
+        void pollProgress();
+        pollInterval = setInterval(() => void pollProgress(), 500);
+      } catch (error) {
+        console.error("Error processing video:", error);
+        setCurrentStep("Error occurred");
+        // Still complete after error to not block the user
+        setTimeout(() => onProcessingComplete(), 2000);
+      }
+    };
+
+    void processVideo();
+
+    // Cleanup function
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [onProcessingComplete, videoFilePath]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-8">

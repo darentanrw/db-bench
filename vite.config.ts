@@ -12,6 +12,15 @@ export default defineConfig({
     },
   },
   server: {
+    watch: {
+      ignored: [
+        "**/uploads/**",
+        "**/video-ascii-frames/**",
+        "**/video-original-frames/**",
+        "**/video-progress/**",
+        "**/scripts/**",
+      ],
+    },
     proxy: {
       "/api": {
         target: "http://localhost:3001",

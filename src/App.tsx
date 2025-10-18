@@ -127,8 +127,11 @@ export default function App() {
         />
       )}
 
-      {currentScreen === "processing" && (
-        <ProcessingScreen onProcessingComplete={handleProcessingComplete} />
+      {currentScreen === "processing" && uploadedFile && (
+        <ProcessingScreen
+          onProcessingComplete={handleProcessingComplete}
+          videoFilePath={uploadedFile.filePath}
+        />
       )}
 
       {currentScreen === "watch" && uploadedFile && (
