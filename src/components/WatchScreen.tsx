@@ -33,6 +33,7 @@ export default function WatchScreen({
   const [dbWrites, setDbWrites] = useState(0);
   const [queries, setQueries] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameCounterRef = useRef<number | null>(null);
   const createEmptyFrameTableResponse = useMutation(
     api.myFunctions.createEmptyFrameTable,
   );
@@ -53,14 +54,10 @@ export default function WatchScreen({
         setDuration(video.duration);
       };
 
-      // Add event listener for time updates to get more accurate frame counting
+      // Add event listener for time updates
       const handleTimeUpdate = () => {
         if (video.currentTime !== undefined) {
           setCurrentTime(video.currentTime);
-          // Calculate real frame count based on actual video time and FPS
-          const fps = parseFloat(fileData.videoFPS) || 30;
-          const realFrameCount = Math.floor(video.currentTime * fps);
-          setCurrentFrameCount(realFrameCount);
         }
       };
 
@@ -68,10 +65,42 @@ export default function WatchScreen({
       void createEmptyFrameTableResponse({ noOfFrames: fileData.frameNo });
       console.log("Empty frame table created successfully");
 
+      // Accurate frame counting function using requestAnimationFrame
+      const updateFrameCount = () => {
+        if (video && video.currentTime !== undefined) {
+          const fps = parseFloat(fileData.videoFPS) || 30;
+          const realFrameCount = Math.floor(video.currentTime * fps);
+          setCurrentFrameCount(realFrameCount);
+        }
+
+        // Continue the animation loop if video is still playing
+        if (!video.paused && !video.ended) {
+          frameCounterRef.current = requestAnimationFrame(updateFrameCount);
+        }
+      };
+
       // Add additional event listeners for more responsive updates
-      const handlePlay = () => setIsPlaying(true);
-      const handlePause = () => setIsPlaying(false);
-      const handleEnded = () => setIsPlaying(false);
+      const handlePlay = () => {
+        setIsPlaying(true);
+        // Start the frame counting loop
+        frameCounterRef.current = requestAnimationFrame(updateFrameCount);
+      };
+
+      const handlePause = () => {
+        setIsPlaying(false);
+        // Stop the frame counting loop
+        if (frameCounterRef.current) {
+          cancelAnimationFrame(frameCounterRef.current);
+        }
+      };
+
+      const handleEnded = () => {
+        setIsPlaying(false);
+        // Stop the frame counting loop
+        if (frameCounterRef.current) {
+          cancelAnimationFrame(frameCounterRef.current);
+        }
+      };
 
       video.addEventListener("play", handlePlay);
       video.addEventListener("pause", handlePause);
@@ -84,6 +113,11 @@ export default function WatchScreen({
         video.removeEventListener("play", handlePlay);
         video.removeEventListener("pause", handlePause);
         video.removeEventListener("ended", handleEnded);
+
+        // Cancel any pending animation frame
+        if (frameCounterRef.current) {
+          cancelAnimationFrame(frameCounterRef.current);
+        }
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,6 +155,15 @@ export default function WatchScreen({
     };
   }, [isPlaying]);
 
+  // Cleanup effect for animation frames
+  useEffect(() => {
+    return () => {
+      if (frameCounterRef.current) {
+        cancelAnimationFrame(frameCounterRef.current);
+      }
+    };
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -134,7 +177,6 @@ export default function WatchScreen({
       } else {
         void videoRef.current.play();
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -154,7 +196,7 @@ export default function WatchScreen({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
-      <div className="max-w-8xl mx-auto px-20 px-10">
+      <div className="max-w-8xl mx-auto px-20 py-4">
         {/* Header */}
         <div className="mb-6">
           <button
