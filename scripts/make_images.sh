@@ -4,7 +4,7 @@
 VIDEO_FILE="$1"
 VIDEO_BASENAME=$(basename "$VIDEO_FILE" .mp4)
 PROCESSING_ID="${VIDEO_BASENAME}_$(date +%s)"
-PROGRESS_FILE="/video-progress/progress_${VIDEO_BASENAME}.txt"
+PROGRESS_FILE="video-progress/progress_${VIDEO_BASENAME}.txt"
 
 # Clean up old frames at the very start
 if [ "$(ls -A video-original-frames 2>/dev/null)" ]; then
@@ -18,6 +18,7 @@ fi
 
 mkdir -p video-original-frames
 mkdir -p video-ascii-frames
+mkdir -p video-progress
 
 # Initialize progress tracking
 echo "0" > "$PROGRESS_FILE"
