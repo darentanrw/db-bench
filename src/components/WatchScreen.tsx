@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useMutation } from "convex/react";
 
@@ -34,6 +34,9 @@ export default function WatchScreen({
   const [queries, setQueries] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameCounterRef = useRef<number | null>(null);
+  const updateFrameContentResponse = useAction(
+    api.myFunctions.updateFrameContent,
+  );
   const createEmptyFrameTableResponse = useMutation(
     api.myFunctions.createEmptyFrameTable,
   );
@@ -163,6 +166,14 @@ export default function WatchScreen({
       }
     };
   }, []);
+
+  useEffect(() => {
+    console.log("currentFrameCount", currentFrameCount);
+    void updateFrameContentResponse({ frameNumber: currentFrameCount });
+    // console.log("frame content updated");
+    // ts-ignore
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFrameCount]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
