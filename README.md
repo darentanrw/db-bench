@@ -1,4 +1,6 @@
-what if you decided to stress test your convex db and make it become a video renderer.... lol
+## what if you decided to stress test your convex db and make it become a video renderer.... lol
+
+### made in the cursor hackathon for sg
 
 
-![Uploading CleanShot 2025-10-19 at 08.56.07@2x.png…]()
+<img width="1178" height="779" alt="image" src="https://github.com/user-attachments/assets/12d43533-334e-409a-9162-62b97b95729f" />
