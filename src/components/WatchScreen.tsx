@@ -177,10 +177,10 @@ export default function WatchScreen({
   }, []);
 
   useEffect(() => {
-    console.log("currentFrameCount", currentFrameCount);
-    void updateFrameContentResponse({ frameNumber: currentFrameCount });
-    // console.log("frame content updated");
-    // ts-ignore
+    if (currentFrameCount > 0 && currentFrameCount % 2 === 0) {
+      console.log("currentFrameCount", currentFrameCount);
+      void updateFrameContentResponse({ frameNumber: currentFrameCount });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFrameCount]);
 

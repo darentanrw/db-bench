@@ -121,21 +121,40 @@ export const getAllFrames = query({
   },
 });
 
-// Mutation to update frame content in the database
-export const updateFrameLine = mutation({
+// Batched mutation to update all lines for a frame in a single request
+export const updateFrameLinesBatch = mutation({
   args: {
-    frameId: v.id("frames"),
     frameNumber: v.number(),
-    lineNumber: v.number(),
-    lineContent: v.string(),
+    lines: v.array(
+      v.object({
+        lineNumber: v.number(),
+        lineContent: v.string(),
+      }),
+    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.frameId, {
-      frameNumber: args.frameNumber,
-      lineNumber: args.lineNumber,
-      lineContent: args.lineContent,
-    });
+    // Get all existing frames to find the correct IDs
+    const existingFrames = await ctx.db
+      .query("frames")
+      .withIndex("by_frame_number")
+      .collect();
+
+    // Update each line in a single batch operation
+    for (const line of args.lines) {
+      const frameToUpdate = existingFrames.find(
+        (frame) => frame.lineNumber === line.lineNumber,
+      );
+
+      if (frameToUpdate) {
+        await ctx.db.patch(frameToUpdate._id, {
+          frameNumber: args.frameNumber,
+          lineNumber: line.lineNumber,
+          lineContent: line.lineContent,
+        });
+      }
+    }
+
     return null;
   },
 });
@@ -181,30 +200,21 @@ export const updateFrameContent = action({
 
       const linesArray = lines.split("\n");
 
-      // Get all existing frames to find the correct IDs
-      const existingFrames = await ctx.runQuery(
-        api.myFunctions.getAllFrames,
-        {},
-      );
-
-      // Update each line in the frames table
+      // Prepare all lines for batch update
+      const linesToUpdate = [];
       for (let lineNumber = 0; lineNumber < linesArray.length; lineNumber++) {
         const lineContent = linesArray[lineNumber] || " "; // Default to space if line is empty
-
-        // Find the frame with the matching line number
-        const frameToUpdate = existingFrames.find(
-          (frame) => frame.lineNumber === lineNumber,
-        );
-
-        if (frameToUpdate) {
-          await ctx.runMutation(api.myFunctions.updateFrameLine, {
-            frameId: frameToUpdate._id,
-            frameNumber: args.frameNumber,
-            lineNumber: lineNumber,
-            lineContent: lineContent,
-          });
-        }
+        linesToUpdate.push({
+          lineNumber: lineNumber,
+          lineContent: lineContent,
+        });
       }
+
+      // Update all lines for this frame in a single batched request
+      await ctx.runMutation(api.myFunctions.updateFrameLinesBatch, {
+        frameNumber: args.frameNumber,
+        lines: linesToUpdate,
+      });
     } catch (error) {
       console.error(
         `Error updating frame content for frame ${args.frameNumber}:`,
