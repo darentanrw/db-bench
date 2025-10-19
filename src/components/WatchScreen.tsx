@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useMutation } from "convex/react";
 
 interface FileData {
   file: File;
@@ -28,16 +29,32 @@ export default function WatchScreen({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [frames, setFrames] = useState(0);
+  const [currentFrameCount, setCurrentFrameCount] = useState(0);
   const [dbWrites, setDbWrites] = useState(0);
   const [queries, setQueries] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameCounterRef = useRef<number | null>(null);
+  const updateFrameContentResponse = useAction(
+    api.myFunctions.updateFrameContent,
+  );
+  const createEmptyFrameTableResponse = useMutation(
+    api.myFunctions.createEmptyFrameTable,
+  );
 
   // Get the file URL from Convex storage
   const fileUrl = useQuery(
     api.myFunctions.getVideoFileUrl,
     fileData.fileId ? { fileId: fileData.fileId as any } : "skip",
   );
+
+  const allFrames = useQuery(api.myFunctions.getAllFrames);
+
+  const data = allFrames
+    ? allFrames
+        .sort((a, b) => a.lineNumber - b.lineNumber)
+        .map((row) => row.lineContent)
+        .join("\n")
+    : undefined;
 
   // Load video and get duration
   useEffect(() => {
@@ -49,21 +66,53 @@ export default function WatchScreen({
         setDuration(video.duration);
       };
 
-      // Add event listener for time updates to get more accurate frame counting
+      // Add event listener for time updates
       const handleTimeUpdate = () => {
         if (video.currentTime !== undefined) {
           setCurrentTime(video.currentTime);
-          // Calculate real frame count based on actual video time and FPS
+        }
+      };
+
+      // Create empty frame table
+      void createEmptyFrameTableResponse({ noOfFrames: 100 });
+      console.log("Empty frame table created successfully");
+
+      // Accurate frame counting function using requestAnimationFrame
+      const updateFrameCount = () => {
+        if (video && video.currentTime !== undefined) {
           const fps = parseFloat(fileData.videoFPS) || 30;
           const realFrameCount = Math.floor(video.currentTime * fps);
-          setFrames(realFrameCount);
+          setCurrentFrameCount(realFrameCount);
+        }
+
+        // Continue the animation loop if video is still playing
+        if (!video.paused && !video.ended) {
+          frameCounterRef.current = requestAnimationFrame(updateFrameCount);
         }
       };
 
       // Add additional event listeners for more responsive updates
-      const handlePlay = () => setIsPlaying(true);
-      const handlePause = () => setIsPlaying(false);
-      const handleEnded = () => setIsPlaying(false);
+      const handlePlay = () => {
+        setIsPlaying(true);
+        // Start the frame counting loop
+        frameCounterRef.current = requestAnimationFrame(updateFrameCount);
+      };
+
+      const handlePause = () => {
+        setIsPlaying(false);
+        // Stop the frame counting loop
+        if (frameCounterRef.current) {
+          cancelAnimationFrame(frameCounterRef.current);
+        }
+      };
+
+      const handleEnded = () => {
+        setIsPlaying(false);
+        // Stop the frame counting loop
+        if (frameCounterRef.current) {
+          cancelAnimationFrame(frameCounterRef.current);
+        }
+      };
 
       video.addEventListener("play", handlePlay);
       video.addEventListener("pause", handlePause);
@@ -76,8 +125,14 @@ export default function WatchScreen({
         video.removeEventListener("play", handlePlay);
         video.removeEventListener("pause", handlePause);
         video.removeEventListener("ended", handleEnded);
+
+        // Cancel any pending animation frame
+        if (frameCounterRef.current) {
+          cancelAnimationFrame(frameCounterRef.current);
+        }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileUrl, fileData.videoFPS]);
 
   useEffect(() => {
@@ -112,6 +167,23 @@ export default function WatchScreen({
     };
   }, [isPlaying]);
 
+  // Cleanup effect for animation frames
+  useEffect(() => {
+    return () => {
+      if (frameCounterRef.current) {
+        cancelAnimationFrame(frameCounterRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentFrameCount > 0 && currentFrameCount % 2 === 0) {
+      console.log("currentFrameCount", currentFrameCount);
+      void updateFrameContentResponse({ frameNumber: currentFrameCount });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFrameCount]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -125,22 +197,13 @@ export default function WatchScreen({
       } else {
         void videoRef.current.play();
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
   const resetStats = () => {
-    setFrames(0);
+    setCurrentFrameCount(0);
     setDbWrites(0);
     setQueries(0);
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
-    if (videoRef.current) {
-      videoRef.current.currentTime = newTime;
-    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -153,7 +216,7 @@ export default function WatchScreen({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto px-20 py-4">
         {/* Header */}
         <div className="mb-6">
           <button
@@ -178,7 +241,7 @@ export default function WatchScreen({
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto">
           {/* ASCII Output Panel - Left Side */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -189,12 +252,22 @@ export default function WatchScreen({
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
             </div>
-            <div className="text-left text-slate-500 dark:text-slate-400 mb-4">
+            {/* <div className="text-left text-slate-500 dark:text-slate-400 mb-4">
               Every ASCII frame is <a>written</a>, then <a>queried</a> from the
               database.
-            </div>
+            </div> */}
 
-            <div className="bg-slate-900 text-green-400 font-mono text-xs p-4 rounded-lg h-[calc(100%-4rem)] overflow-auto"></div>
+            <div className="bg-slate-900 text-green-400 font-mono !text-[5px] p-4 rounded-lg h-auto overflow-auto">
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  fontSize: "5px",
+                }}
+              >
+                {data ? data : " "}
+              </pre>
+            </div>
           </div>
 
           {/* Right Side Panels */}
@@ -260,10 +333,10 @@ export default function WatchScreen({
 
                 {/* Video Controls */}
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex justify-left">
                     <button
                       onClick={handlePlayPause}
-                      className="flex items-center justify-center w-10 h-10 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 rounded-full hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors duration-200"
+                      className="flex items-center justify-center px-12 py-3 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-800 rounded-lg hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors duration-200"
                     >
                       {isPlaying ? (
                         <svg
@@ -283,30 +356,13 @@ export default function WatchScreen({
                         </svg>
                       )}
                     </button>
-
-                    <div className="flex-1">
-                      <input
-                        type="range"
-                        min="0"
-                        max={duration}
-                        step="0.1"
-                        value={currentTime}
-                        onChange={handleSeek}
-                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Statistics Panel - Bottom Right */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hidden">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
                   Stats for Nerds
@@ -322,14 +378,14 @@ export default function WatchScreen({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600 dark:text-slate-400">
-                    Frames Played:
+                    Current Frame Counter:
                   </span>
                   <span
                     className={`font-mono text-lg font-semibold text-blue-600 dark:text-blue-400 transition-all duration-100 ${
                       isPlaying ? "animate-pulse" : ""
                     }`}
                   >
-                    {frames.toLocaleString()}
+                    {currentFrameCount.toLocaleString()}
                   </span>
                 </div>
 

@@ -34,6 +34,7 @@ export default function App() {
 
   const saveVideoMetadata = useMutation(api.myFunctions.saveVideoMetadata);
 
+
   const handleFileSelected = async (
     file: File,
     metadata: { videoResolution: string; videoFPS: string; duration: number },
