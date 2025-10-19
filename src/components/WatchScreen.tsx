@@ -47,6 +47,15 @@ export default function WatchScreen({
     fileData.fileId ? { fileId: fileData.fileId as any } : "skip",
   );
 
+  const allFrames = useQuery(api.myFunctions.getAllFrames);
+
+  const data = allFrames
+    ? allFrames
+        .sort((a, b) => a.lineNumber - b.lineNumber)
+        .map((row) => row.lineContent)
+        .join("\n")
+    : undefined;
+
   // Load video and get duration
   useEffect(() => {
     if (videoRef.current && fileUrl) {
@@ -232,7 +241,7 @@ export default function WatchScreen({
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto">
           {/* ASCII Output Panel - Left Side */}
           <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -248,7 +257,17 @@ export default function WatchScreen({
               database.
             </div> */}
 
-            <div className="bg-slate-900 text-green-400 font-mono text-xs p-4 rounded-lg h-[calc(100%-4rem)] overflow-auto"></div>
+            <div className="bg-slate-900 text-green-400 font-mono !text-[3px] p-4 rounded-lg h-auto overflow-auto">
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  fontSize: "3px",
+                }}
+              >
+                {data ? data : " "}
+              </pre>
+            </div>
           </div>
 
           {/* Right Side Panels */}
