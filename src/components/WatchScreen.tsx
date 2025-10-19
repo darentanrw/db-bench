@@ -74,7 +74,7 @@ export default function WatchScreen({
       };
 
       // Create empty frame table
-      void createEmptyFrameTableResponse({ noOfFrames: fileData.frameNo });
+      void createEmptyFrameTableResponse({ noOfFrames: 100 });
       console.log("Empty frame table created successfully");
 
       // Accurate frame counting function using requestAnimationFrame
@@ -257,12 +257,12 @@ export default function WatchScreen({
               database.
             </div> */}
 
-            <div className="bg-slate-900 text-green-400 font-mono !text-[3px] p-4 rounded-lg h-auto overflow-auto">
+            <div className="bg-slate-900 text-green-400 font-mono !text-[5px] p-4 rounded-lg h-auto overflow-auto">
               <pre
                 style={{
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-word",
-                  fontSize: "3px",
+                  fontSize: "5px",
                 }}
               >
                 {data ? data : " "}
@@ -362,7 +362,7 @@ export default function WatchScreen({
             </div>
 
             {/* Statistics Panel - Bottom Right */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6 hidden">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
                   Stats for Nerds

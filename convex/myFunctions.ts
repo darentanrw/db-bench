@@ -134,26 +134,26 @@ export const updateFrameLinesBatch = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Get all existing frames to find the correct IDs
-    const existingFrames = await ctx.db
-      .query("frames")
-      .withIndex("by_frame_number")
-      .collect();
+    // Create an array of promises for patching each line
+    const patchPromises = args.lines.map(async (line) => {
+      // Query for the specific document using lineNumber
+      const existingFrame = await ctx.db
+        .query("frames")
+        .withIndex("by_line_number", (q) => q.eq("lineNumber", line.lineNumber))
+        .unique(); // Use unique() since lineNumber should be unique
 
-    // Update each line in a single batch operation
-    for (const line of args.lines) {
-      const frameToUpdate = existingFrames.find(
-        (frame) => frame.lineNumber === line.lineNumber,
-      );
-
-      if (frameToUpdate) {
-        await ctx.db.patch(frameToUpdate._id, {
+      if (existingFrame) {
+        // Patch the document with the new frameNumber and lineContent
+        return ctx.db.patch(existingFrame._id, {
           frameNumber: args.frameNumber,
-          lineNumber: line.lineNumber,
           lineContent: line.lineContent,
         });
       }
-    }
+      return Promise.resolve(); // Resolve if frame not found, though it should exist
+    });
+
+    // Execute all patch operations in parallel
+    await Promise.all(patchPromises);
 
     return null;
   },
